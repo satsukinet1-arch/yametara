@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>辞めたら何ヶ月暮らせる？診断｜失業手当・住民税・国保まで計算</title>
+<meta name="description" content="今の会社を辞めたら、無職で何ヶ月暮らせるかを診断。失業手当（2026年8月改定）・住民税・国民健康保険・国民年金まで差し引いて、貯金が尽きる月を出します。入力は保存されません。">
+<link rel="canonical" href="https://satsukinet1-arch.github.io/yametara/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="今辞めたら何ヶ月暮らせる？診断">
+<meta property="og:description" content="失業手当・住民税・国保・年金まで入れて、無職で暮らせる月数を診断します。">
+<meta property="og:url" content="https://satsukinet1-arch.github.io/yametara/">
+<meta property="og:image" content="https://satsukinet1-arch.github.io/yametara/ogp.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: 落ち着いた家計ツール。煽らず、数字で安心させる
+   IDEA: 預金通帳。退職後の毎月の出入りと残高が一行ずつ減っていく
+   PICTURE: 残高が尽きるまでの折れ線（手当期間を帯で表示）と巨大な「◯ヶ月」
+   COLOUR/TYPE: オックスフォードブルーの帯、白いパネル、結果だけマゼンタ。数字はRed Hat Display、本文はNoto Sans JP
+   LAYOUT: 1画面1問のステップ → 結果は数字・グラフ・内訳・伸ばす方法・次の一手の縦積み */
+:root{color-scheme:light dark;--bg:light-dark(#eef1f7,#070f26);--panel:light-dark(#fff,#0f1a3a);--ink:light-dark(#0b1f4b,#e8ecf6);--sub:light-dark(#55607a,#a4adc4);--line:light-dark(#d7dce8,#243156);--band:#0b1f4b;--hot:#e0115f;--ok:#1f8a5b;--warn:#c78100;--benefit:light-dark(#dfe7fb,#1a2a5c)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Noto Sans JP",system-ui,sans-serif;overflow-x:clip}
+.num{font-family:"Red Hat Display","Noto Sans JP",sans-serif;font-variant-numeric:tabular-nums}
+header{background:var(--band);color:#fff;padding:22px max(5vw,16px) 26px}
+header h1{margin:0;font-size:clamp(24px,5vw,36px);line-height:1.15;text-wrap:balance}
+header p{margin:6px 0 0;color:#c4cde4;font-size:14px}
+main{max-width:720px;margin:-14px auto 40px;padding:0 max(3vw,12px)}
+.card{background:var(--panel);border-radius:16px;padding:clamp(18px,4vw,30px);box-shadow:0 2px 10px rgb(11 31 75/.08);margin-bottom:14px}
+.progress{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:18px}
+.progress i{display:block;height:100%;background:var(--hot);transition:width .3s}
+.step-no{font-size:13px;color:var(--sub)}
+.q{font-size:clamp(20px,4.4vw,26px);font-weight:700;line-height:1.35;margin:4px 0 6px}
+.hint{color:var(--sub);font-size:14px;margin:0 0 16px}
+.opts{display:grid;gap:10px}
+.opt{min-height:52px;border:2px solid var(--line);background:none;color:var(--ink);border-radius:12px;font:inherit;font-weight:500;text-align:left;padding:10px 16px;cursor:pointer}
+.opt:hover{border-color:#8a96b8}.opt.on{border-color:var(--hot);background:light-dark(#fdeef4,#3a0f24)}
+.opt:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--hot);outline-offset:2px}
+.slider-val{font-size:clamp(34px,8vw,48px);font-weight:900;text-align:center;margin:8px 0}
+.slider-val small{font-size:18px;margin-left:4px}
+input[type=range]{width:100%;height:44px;accent-color:var(--hot)}
+.range-ends{display:flex;justify-content:space-between;font-size:13px;color:var(--sub)}
+select,input[type=number]{width:100%;min-height:48px;font:inherit;font-size:16px;border:2px solid var(--line);border-radius:12px;padding:8px 12px;background:var(--panel);color:var(--ink)}
+.nav{display:flex;gap:10px;margin-top:22px}
+.btn{min-height:50px;border:0;border-radius:12px;font:inherit;font-weight:700;padding:0 22px;cursor:pointer}
+.btn.main{background:var(--hot);color:#fff;flex:1}.btn.ghost{background:none;color:var(--sub);border:2px solid var(--line)}
+.presets{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:6px}
+.presets .opt{min-height:44px;padding:6px 14px;text-align:center}
+/* 結果 */
+.hero{text-align:center;padding-top:26px}
+.hero .lead{font-size:16px;color:var(--sub);margin:0}
+.hero .big{font-size:clamp(72px,20vw,128px);font-weight:900;line-height:1;margin:6px 0 0;color:var(--hot)}
+.hero .big small{font-size:.32em;margin-left:6px;color:var(--ink)}
+.hero .until{margin:6px 0 12px;font-weight:500}
+.badge{display:inline-block;padding:6px 14px;border-radius:99px;color:#fff;font-weight:700;font-size:15px}
+.share{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;margin-top:16px;padding:0 22px;border-radius:99px;background:#000;color:#fff;text-decoration:none;font-weight:700}
+h2{font-size:20px;margin:0 0 12px;line-height:1.3}
+.fig{position:relative;height:240px}.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--sub);margin-top:6px;flex-wrap:wrap}
+.legend i{display:inline-block;width:14px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.stat{border:1px solid var(--line);border-radius:12px;padding:14px}
+.stat .k{font-size:13px;color:var(--sub)}.stat .v{font-size:26px;font-weight:900;white-space:nowrap}
+.stat .d{font-size:13px;color:var(--sub);margin-top:4px}
+.note{background:light-dark(#fff6e0,#2e2410);border-radius:12px;padding:12px 14px;font-size:14px;margin-top:12px}
+.whatif{display:grid;gap:8px}
+.wi{display:flex;align-items:center;gap:12px;min-height:56px;border:2px solid var(--line);border-radius:12px;padding:8px 14px;cursor:pointer}
+.wi input{width:22px;height:22px;accent-color:var(--hot);flex:none}
+.wi span{flex:1}.wi b{white-space:nowrap;color:var(--ok)}
+.pr{font-size:12px;border:1px solid var(--sub);color:var(--sub);border-radius:4px;padding:0 5px;margin-left:6px;vertical-align:2px}
+.aff{display:block;border:2px solid var(--line);border-radius:12px;padding:14px 16px;color:inherit;text-decoration:none;margin-top:10px}
+.aff b{display:block;font-size:17px}.aff span{font-size:14px;color:var(--sub)}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}.tbl th,.tbl td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}.tbl th:first-child,.tbl td:first-child{text-align:left}
+.scroll{overflow-x:auto}
+details summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center}
+.fine{font-size:13px;color:var(--sub)}
+.hidden{display:none}
+@media (prefers-reduced-motion:reduce){.progress i{transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>辞めたら何ヶ月暮らせる？診断</h1>
+  <p>失業手当・住民税・国保・年金まで入れて、無職で暮らせる月数を出します。入力は保存されません。</p>
+</header>
+<main>
+  <section id="form" class="card" aria-live="polite"></section>
+  <section id="result" class="hidden"></section>
+</main>
+<footer style="text-align:center;padding:0 16px 40px;font-size:13px;color:var(--sub)">
+  <a href="privacy.html" style="color:inherit">プライバシーポリシー・運営者情報</a><br>
+  当サイトはアフィリエイト広告を利用しています。
+</footer>
+
+<script>
+{
+// 「辞めたら何ヶ月暮らせる？」計算エンジン
+// 毎年変わる数字は CONFIG にまとめる（年度ごとに更新）
+const CONFIG = {
+  // 雇用保険 基本手当（令和8年8月1日〜）厚生労働省
+  benefit: {
+    wageDailyMin: 3203,
+    dailyMin: 2562,
+    rate80Below: 5480,   // この賃金日額未満は80%
+    rate50Above: 13490,  // この賃金日額超は50%
+    // 年齢区分ごとの賃金日額上限・基本手当日額上限
+    caps: {
+      u30: { wage: 14900, daily: 7450 },
+      a30_34: { wage: 16540, daily: 8270 },
+      a35_44: { wage: 16540, daily: 8270 },
+      a45_59: { wage: 18220, daily: 9110 },
+    },
+    restrictionMonthsSelf: 1, // 自己都合の給付制限（2025年4月〜原則1ヶ月）
+  },
+  // 国民年金 定額保険料（日本年金機構）
+  pension: { byFiscalYear: { 2026: 17920, 2027: 18290 }, fallback: 18290 },
+  // 国保（全国の目安。自治体で大きく異なる）
+  kokuho: { incomeRate: 0.10, perCapita: 50000, cap: 920000, basicDeduction: 430000 },
+  // 任意継続（協会けんぽの目安）
+  ninkei: { rate: 0.10, stdCap: 320000 },
+  // 住民税
+  juminzei: { rate: 0.10, perCapita: 5000, basicDeduction: 430000, socialInsRate: 0.15 },
+};
+
+// 所定給付日数（会社都合＝特定受給資格者）
+const DAYS_COMPANY = {
+  //       半年未満, 半年〜1年, 1〜5年, 5〜10年, 10〜20年, 20年以上
+  u30:    [0, 90, 90, 120, 180, 180],
+  a30_34: [0, 90, 120, 180, 210, 240],
+  a35_44: [0, 90, 150, 180, 240, 270],
+  a45_59: [0, 90, 180, 240, 270, 330],
+};
+// 一般（自己都合・契約満了は安全側で一般の日数）
+const DAYS_GENERAL = [0, 0, 90, 90, 120, 150]; // 1年未満は自己都合だと資格なし
+
+const TENURE = ['lt6m', '6m_1y', '1_5y', '5_10y', '10_20y', 'ge20y'];
+
+function kyuyoShotoku(income) {
+  // 給与所得控除（令和7年分以降）
+  let ded;
+  if (income <= 1900000) ded = 650000;
+  else if (income <= 3600000) ded = income * 0.3 + 80000;
+  else if (income <= 6600000) ded = income * 0.2 + 440000;
+  else if (income <= 8500000) ded = income * 0.1 + 1100000;
+  else ded = 1950000;
+  return Math.max(0, income - ded);
+}
+
+function juminzeiAnnual(income) {
+  if (income <= 0) return 0;
+  const c = CONFIG.juminzei;
+  const base = kyuyoShotoku(income) - income * c.socialInsRate - c.basicDeduction;
+  if (kyuyoShotoku(income) <= 450000) return 0; // 非課税の目安（単身）
+  return Math.max(0, Math.floor(base * c.rate)) + c.perCapita;
+}
+
+function kokuhoAnnual(income, reduce30) {
+  const c = CONFIG.kokuho;
+  let shotoku = kyuyoShotoku(income);
+  if (reduce30) shotoku *= 0.3;
+  const base = Math.max(0, shotoku - c.basicDeduction);
+  let perCapita = c.perCapita;
+  if (shotoku <= c.basicDeduction) perCapita *= 0.3; // 7割軽減の目安
+  return Math.min(c.cap, Math.floor(base * c.incomeRate + perCapita));
+}
+
+function benefitDaily(monthly, ageKey) {
+  const b = CONFIG.benefit;
+  const cap = b.caps[ageKey];
+  let w = (monthly * 6) / 180;
+  w = Math.max(b.wageDailyMin, Math.min(w, cap.wage));
+  let y;
+  if (w < b.rate80Below) y = 0.8 * w;
+  else if (w <= b.rate50Above) y = 0.8 * w - 0.3 * ((w - b.rate80Below) / (b.rate50Above - b.rate80Below)) * w;
+  else y = 0.5 * w;
+  return Math.floor(Math.max(b.dailyMin, Math.min(y, cap.daily)));
+}
+
+function benefitPlan(inp) {
+  const t = TENURE.indexOf(inp.tenure);
+  let days = 0, eligible = true, startMonth = 2;
+  if (inp.reason === 'company') {
+    days = DAYS_COMPANY[inp.age][t];
+  } else if (inp.reason === 'contract') {
+    days = t >= 1 ? Math.max(90, DAYS_GENERAL[t]) : 0;
+  } else {
+    days = DAYS_GENERAL[t];
+    startMonth = 2 + CONFIG.benefit.restrictionMonthsSelf;
+  }
+  if (!days) eligible = false;
+  const daily = eligible ? benefitDaily(inp.monthly, inp.age) : 0;
+  return { eligible, days, daily, startMonth, total: daily * days };
+}
+
+// y年m月（1-12）の年度（6月始まり＝住民税年度）
+function taxYearOf(y, m) { return m >= 6 ? y : y - 1; }
+function fiscalYearOf(y, m) { return m >= 4 ? y : y - 1; }
+function addMonth(y, m, k) { const t = y * 12 + (m - 1) + k; return [Math.floor(t / 12), (t % 12) + 1]; }
+
+function simulate(raw, opt = {}) {
+  const inp = Object.assign({}, raw, opt.override || {});
+  const annualIncome = inp.monthly * 12 + inp.bonus;
+  const [LY, LM] = [inp.leaveYear, inp.leaveMonth];
+  const incomeOfYear = (y) => {
+    if (y < LY) return annualIncome;
+    if (y === LY) return inp.monthly * LM + inp.bonus * (LM / 12);
+    return 0;
+  };
+  const isInvoluntary = inp.reason === 'company' || inp.reason === 'contract';
+  const reduceEndFY = fiscalYearOf(LY, LM) + 1; // 翌年度末まで
+
+  const plan = benefitPlan(inp);
+  let remainingDays = plan.days;
+
+  // 住民税：1〜4月退職は5月分まで一括天引き
+  let lump = 0;
+  if (LM >= 1 && LM <= 4) {
+    lump = Math.round(juminzeiAnnual(incomeOfYear(LY - 1)) / 12 * (5 - LM));
+  }
+  let balance = inp.savings + inp.severance - lump;
+  const start = balance;
+
+  const rows = [];
+  let months = null, exact = null;
+  const MAX = 60;
+  for (let k = 1; k <= MAX; k++) {
+    const [y, m] = addMonth(LY, LM, k);
+    const ty = taxYearOf(y, m);
+    // 住民税（一括で払った月は0）
+    let jumin = 0;
+    const coveredByLump = LM <= 4 && y === LY && m <= 5;
+    if (!coveredByLump) jumin = juminzeiAnnual(incomeOfYear(ty - 1)) / 12;
+    // 健康保険
+    let health = 0;
+    const kokuho = () => {
+      const fy = fiscalYearOf(y, m);
+      const reduce = isInvoluntary && fy <= reduceEndFY;
+      return kokuhoAnnual(incomeOfYear(ty - 1), reduce) / 12;
+    };
+    const ninkei = () => (k <= 24 ? Math.min(inp.monthly, CONFIG.ninkei.stdCap) * CONFIG.ninkei.rate : kokuho());
+    const hType = inp.health === 'unknown' ? 'kokuho' : inp.health;
+    if (hType === 'kokuho') health = kokuho();
+    else if (hType === 'ninkei') health = ninkei();
+    else if (hType === 'cheapest') health = Math.min(kokuho(), ninkei());
+    else health = 0; // 扶養
+    // 国民年金
+    const fyP = fiscalYearOf(y, m);
+    const pension = inp.pensionExempt ? 0 : (CONFIG.pension.byFiscalYear[fyP] || CONFIG.pension.fallback);
+    // 失業手当
+    let benefit = 0;
+    if (plan.eligible && k >= plan.startMonth && remainingDays > 0) {
+      const d = Math.min(28, remainingDays);
+      benefit = plan.daily * d;
+      remainingDays -= d;
+    }
+    const out = inp.rent + inp.living + jumin + health + pension;
+    const prev = balance;
+    balance += benefit - out;
+    rows.push({ y, m, benefit: Math.round(benefit), jumin: Math.round(jumin), health: Math.round(health), pension, out: Math.round(out), balance: Math.round(balance) });
+    if (balance < 0 && months === null) { months = k - 1; exact = prev > 0 ? (k - 1) + prev / (prev - balance) : k - 1; }
+  }
+  if (months === null) { months = MAX; exact = MAX; }
+  const [ey, em] = addMonth(LY, LM, months);
+  return { months, exact, endYear: ey, endMonth: em, plan, lump, start, rows, capped: months >= MAX };
+}
+
+
+
+const SITE_URL = 'https://satsukinet1-arch.github.io/yametara/';
+const yen = n => Math.round(n).toLocaleString('ja-JP') + '円';
+const man = n => (Math.round(n / 1000) / 10).toLocaleString('ja-JP') + '万円';
+
+// 退職月の候補（来月から12ヶ月）
+const now = new Date();
+const leaveChoices = [];
+for (let k = 1; k <= 12; k++) {
+  const t = now.getFullYear() * 12 + now.getMonth() + k;
+  leaveChoices.push({ y: Math.floor(t / 12), m: (t % 12) + 1 });
+}
+
+const S = {
+  age: null, monthly: 250000, bonus: 0, tenure: '1_5y', reason: null, savings: 1000000,
+  rent: 70000, living: 120000, health: 'unknown', severance: 0,
+  leave: 0, speak: null, pensionExempt: false
+};
+
+const steps = [
+  { key: 'age', q: '年齢は？', hint: '失業手当の上限額と、もらえる日数が変わります。', type: 'choice',
+    opts: [['u30', '29歳以下'], ['a30_34', '30〜34歳'], ['a35_44', '35〜44歳'], ['a45_59', '45〜59歳']] },
+  { key: 'monthly', q: '毎月の給料は？', hint: '額面（手取りではなく）、残業代込み、ボーナスは除く。', type: 'range', min: 150000, max: 800000, step: 10000, unit: '万円/月' },
+  { key: 'bonus', q: '去年のボーナスの合計は？', hint: 'なければ0のままで大丈夫です。住民税と国保の計算に使います。', type: 'range', min: 0, max: 3000000, step: 50000, unit: '万円/年' },
+  { key: 'tenure', q: '雇用保険に入っていた期間は？', hint: '今の会社を含めて、間が1年以上空いていなければ前の会社と合算できます。', type: 'choice',
+    opts: [['lt6m', '半年未満'], ['6m_1y', '半年〜1年'], ['1_5y', '1〜5年'], ['5_10y', '5〜10年'], ['10_20y', '10〜20年'], ['ge20y', '20年以上']] },
+  { key: 'reason', q: '辞め方は？', hint: '自分から辞めると、手当が出るまで1ヶ月長くかかります。', type: 'choice',
+    opts: [['self', '自分から辞める'], ['company', '会社都合（解雇・倒産など）'], ['contract', '契約期間の満了']] },
+  { key: 'savings', q: 'すぐ使える貯金は？', hint: '普通預金など、すぐ引き出せるお金。投資や積立は除きます。', type: 'range', min: 0, max: 10000000, step: 100000, unit: '万円' },
+  { key: 'rent', q: '家賃（住宅ローン）は？', hint: '実家暮らしなら0にしてください。', type: 'range', min: 0, max: 200000, step: 5000, unit: '万円/月', presets: [[0, '実家なので0']] },
+  { key: 'living', q: '家賃以外の生活費は？', hint: '食費・光熱費・通信費・交際費など。迷ったら「ふつう」で。', type: 'range', min: 50000, max: 300000, step: 5000, unit: '万円/月',
+    presets: [[80000, '節約 8万'], [120000, 'ふつう 12万'], [180000, 'ゆとり 18万']] },
+  { key: 'health', q: '辞めたあとの健康保険は？', hint: 'わからなければ、そのまま次へ。国民健康保険で計算します。', type: 'choice',
+    opts: [['kokuho', '国民健康保険'], ['ninkei', '今の会社の保険を任意継続'], ['fuyo', '家族の扶養に入る'], ['unknown', 'わからない']] },
+  { key: 'leave', q: '辞める予定の月は？', hint: '1〜4月に辞めると、5月分までの住民税が最後の給料からまとめて引かれます。', type: 'select' },
+  { key: 'severance', q: '退職金は出そう？', hint: 'わからなければ0のままで。', type: 'range', min: 0, max: 5000000, step: 100000, unit: '万円' },
+  { key: 'speak', q: '会社に「辞めます」と言えそう？', hint: '結果の下に出す情報を選ぶためだけに使います。', type: 'choice',
+    opts: [['yes', '普通に言える'], ['hard', '言い出しにくい']] }
+];
+
+let cur = 0;
+const form = document.getElementById('form');
+const result = document.getElementById('result');
+
+function renderStep() {
+  const s = steps[cur];
+  const v = S[s.key];
+  let body = '';
+  if (s.type === 'choice') {
+    body = '<div class="opts">' + s.opts.map(([val, label]) =>
+      `<button type="button" class="opt${v === val ? ' on' : ''}" data-v="${val}">${label}</button>`).join('') + '</div>';
+  } else if (s.type === 'range') {
+    const pre = s.presets ? '<div class="presets">' + s.presets.map(([pv, pl]) =>
+      `<button type="button" class="opt${v === pv ? ' on' : ''}" data-p="${pv}">${pl}</button>`).join('') + '</div>' : '';
+    body = `${pre}<div class="slider-val num" id="sv">${(v / 10000).toLocaleString('ja-JP')}<small>${s.unit}</small></div>
+      <input type="range" id="rg" min="${s.min}" max="${s.max}" step="${s.step}" value="${v}" aria-label="${s.q}">
+      <div class="range-ends num"><span>${s.min / 10000}万</span><span>${s.max / 10000}万</span></div>`;
+  } else {
+    body = `<select id="sel" aria-label="${s.q}">` + leaveChoices.map((c, i) =>
+      `<option value="${i}"${v === i ? ' selected' : ''}>${c.y}年${c.m}月末</option>`).join('') + '</select>';
+  }
+  const needsPick = s.type === 'choice' && v === null;
+  form.innerHTML = `
+    <div class="progress"><i style="width:${(cur / steps.length) * 100}%"></i></div>
+    <div class="step-no num">${cur + 1} / ${steps.length}</div>
+    <div class="q">${s.q}</div><p class="hint">${s.hint}</p>${body}
+    <div class="nav">
+      ${cur > 0 ? '<button type="button" class="btn ghost" id="back">戻る</button>' : ''}
+      <button type="button" class="btn main" id="next"${needsPick ? ' disabled style="opacity:.4"' : ''}>${cur === steps.length - 1 ? '結果を見る' : '次へ'}</button>
+    </div>`;
+  form.querySelectorAll('.opt[data-v]').forEach(b => b.addEventListener('click', () => {
+    S[s.key] = b.dataset.v; next();
+  }));
+  form.querySelectorAll('.opt[data-p]').forEach(b => b.addEventListener('click', () => {
+    S[s.key] = Number(b.dataset.p); renderStep();
+  }));
+  const rg = document.getElementById('rg');
+  if (rg) rg.addEventListener('input', () => {
+    S[s.key] = Number(rg.value);
+    document.getElementById('sv').innerHTML = `${(S[s.key] / 10000).toLocaleString('ja-JP')}<small>${s.unit}</small>`;
+    form.querySelectorAll('.opt[data-p]').forEach(b => b.classList.toggle('on', Number(b.dataset.p) === S[s.key]));
+  });
+  const sel = document.getElementById('sel');
+  if (sel) sel.addEventListener('change', () => { S.leave = Number(sel.value); });
+  document.getElementById('next').addEventListener('click', next);
+  const back = document.getElementById('back');
+  if (back) back.addEventListener('click', () => { cur--; renderStep(); });
+}
+
+function next() {
+  if (cur < steps.length - 1) { cur++; renderStep(); }
+  else showResult();
+}
+
+function inputs(extra) {
+  const lc = leaveChoices[S.leave];
+  return Object.assign({
+    age: S.age, monthly: S.monthly, bonus: S.bonus, tenure: S.tenure, reason: S.reason,
+    savings: S.savings, severance: S.severance, rent: S.rent, living: S.living,
+    health: S.health, leaveYear: lc.y, leaveMonth: lc.m, pensionExempt: false
+  }, extra || {});
+}
+
+const whatifs = [
+  { id: 'living', label: '生活費を月1万円減らす', f: i => ({ living: Math.max(0, i.living - 10000) }) },
+  { id: 'pension', label: '国民年金の免除を申請する（失業による特例）', f: () => ({ pensionExempt: true }), skip: () => false },
+  { id: 'health', label: '健康保険を国保・任意継続の安いほうにする', f: () => ({ health: 'cheapest' }), skip: i => i.health === 'fuyo' },
+  { id: 'month', label: '辞める月を5月以降にずらす', f: i => ({ leaveYear: i.leaveMonth <= 4 ? i.leaveYear : i.leaveYear, leaveMonth: 5 }), skip: i => i.leaveMonth > 4 }
+];
+const on = {};
+
+function verdict(m) {
+  if (m >= 6) return ['落ち着いて転職活動できる水準', 'var(--ok)'];
+  if (m >= 3) return ['辞める前に次を探し始めると安心', 'var(--warn)'];
+  return ['先に転職先を決めるのが安全', 'var(--hot)'];
+}
+
+function showResult() {
+  form.classList.add('hidden');
+  result.classList.remove('hidden');
+  renderResult();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderResult() {
+  const baseIn = inputs();
+  let ov = {};
+  whatifs.forEach(w => { if (on[w.id] && !(w.skip && w.skip(baseIn))) Object.assign(ov, w.f(baseIn)); });
+  const r = simulate(baseIn, { override: ov });
+  const r0 = simulate(baseIn);
+  const [vtext, vcol] = verdict(r.months);
+  const p = r.plan;
+  const first = r.rows[0];
+  const shareText = `今辞めたら、無職で約${r.capped ? '60' : r.months}ヶ月${r.capped ? '以上' : ''}暮らせるらしい。#辞めたら何ヶ月`;
+  const shareUrl = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText) + (SITE_URL.startsWith('http') ? '&url=' + encodeURIComponent(SITE_URL) : '');
+
+  const wiHtml = whatifs.filter(w => !(w.skip && w.skip(baseIn))).map(w => {
+    const solo = simulate(baseIn, { override: w.f(baseIn) });
+    const diff = Math.round((solo.exact - r0.exact) * 10) / 10;
+    const dTxt = diff > 0 ? '＋' + diff.toFixed(1) + 'ヶ月' : diff === 0 ? '変化なし' : diff.toFixed(1) + 'ヶ月';
+    return `<label class="wi"><input type="checkbox" data-w="${w.id}"${on[w.id] ? ' checked' : ''}><span>${w.label}</span><b class="num">${dTxt}</b></label>`;
+  }).join('');
+
+  const benefitText = p.eligible
+    ? `<div class="v num">${man(p.daily * 28)}<small style="font-size:14px">/月</small></div><div class="d">合計 ${man(p.total)}・${p.days}日分。退職の${p.startMonth}ヶ月後から</div>`
+    : `<div class="v">対象外</div><div class="d">${S.reason === 'self' ? '自分から辞める場合、加入1年以上が必要です' : '加入期間が半年以上必要です'}</div>`;
+
+  const showAgency = S.speak === 'hard';
+  result.innerHTML = `
+  <div class="card hero">
+    <p class="lead">今辞めると、無職で約</p>
+    <div class="big num">${r.capped ? '60+' : r.months}<small>ヶ月</small></div>
+    <p class="until">暮らせます（${r.capped ? '5年以上' : r.endYear + '年' + r.endMonth + '月ごろまで'}）</p>
+    <span class="badge" style="background:${vcol}">${vtext}</span><br>
+    <a class="share" href="${shareUrl}" target="_blank" rel="noopener">Xで結果をシェア</a>
+    <p class="fine">シェアされるのは月数だけです。貯金や給料は載りません。</p>
+  </div>
+
+  <div class="card">
+    <h2>貯金の減り方</h2>
+    <div class="fig"><svg id="chart" role="img" aria-label="月ごとの残高の推移"></svg></div>
+    <div class="legend"><span><i style="background:var(--hot)"></i>残高</span><span><i style="background:var(--benefit)"></i>失業手当が入る月</span></div>
+  </div>
+
+  <div class="card">
+    <h2>内訳</h2>
+    <div class="grid3">
+      <div class="stat"><div class="k">失業手当</div>${benefitText}</div>
+      <div class="stat"><div class="k">辞めても来る請求（1ヶ月目）</div><div class="v num">${man(first.jumin + first.health + first.pension)}</div>
+        <div class="d">住民税 ${yen(first.jumin)}・健康保険 ${yen(first.health)}・年金 ${yen(first.pension)}</div></div>
+      <div class="stat"><div class="k">毎月の支出（1ヶ月目）</div><div class="v num">${man(first.out)}</div><div class="d">家賃・生活費を含む</div></div>
+    </div>
+    ${r.lump > 0 ? `<div class="note">${leaveChoices[S.leave].m}月に辞めると、5月分までの住民税 <b class="num">${yen(r.lump)}</b> が最後の給料からまとめて引かれます。</div>` : ''}
+    <div class="note">在職中は給料から天引きされていた住民税・健康保険・年金を、辞めたあとは自分で払います。</div>
+    <details><summary>月ごとの明細を見る</summary><div class="scroll"><table class="tbl">
+      <thead><tr><th>月</th><th>手当</th><th>住民税</th><th>保険</th><th>年金</th><th>残高</th></tr></thead><tbody>
+      ${r.rows.slice(0, Math.min(r.rows.length, r.months + 2)).map(x => `<tr><td>${x.y}/${x.m}</td><td class="num">${x.benefit ? yen(x.benefit) : '-'}</td><td class="num">${yen(x.jumin)}</td><td class="num">${yen(x.health)}</td><td class="num">${yen(x.pension)}</td><td class="num">${yen(x.balance)}</td></tr>`).join('')}
+      </tbody></table></div></details>
+  </div>
+
+  <div class="card">
+    <h2>暮らせる月数を伸ばす方法</h2>
+    <p class="hint">チェックすると上の結果に反映されます。右の数字は、それだけを行った場合に伸びる期間です。</p>
+    <div class="whatif">${wiHtml}</div>
+  </div>
+
+  <div class="card">
+    <h2>次の一手<span class="pr">PR</span></h2>
+    <p class="hint">${r.months < 3 ? '今の貯金だと余裕が少なめです。辞める前に、次の職場だけ探しておくのが安全です。' : 'いまのうちに、条件の良い求人を見ておくと選択肢が広がります。'}</p>
+    <a class="aff" href="#" onclick="return false"><b>転職エージェントに無料で相談する</b><span>（提携後にリンクを設定します）</span></a>
+    ${showAgency ? '<a class="aff" href="#" onclick="return false"><b>言い出しにくいなら、退職代行という方法も</b><span>弁護士・労働組合が運営するサービスのみ掲載予定（提携後にリンクを設定）</span></a>' : ''}
+  </div>
+
+  <div class="card">
+    <button type="button" class="btn ghost" id="redo" style="width:100%">条件を変えてもう一度</button>
+    <p class="fine">この結果は2026年度の制度（失業手当の上限額は2026年8月改定値、国民年金は月17,920円）をもとにした概算です。国民健康保険は全国の目安で計算しており、お住まいの市区町村で大きく変わります。会社都合・雇い止めの場合は国保の軽減（届出が必要）を反映しています。正確な金額はハローワーク・市区町村でご確認ください。入力した内容は保存・送信していません。</p>
+  </div>`;
+
+  result.querySelectorAll('input[data-w]').forEach(c => c.addEventListener('change', () => { on[c.dataset.w] = c.checked; renderResult(); }));
+  document.getElementById('redo').addEventListener('click', () => {
+    result.classList.add('hidden'); form.classList.remove('hidden'); cur = 0; renderStep();
+  });
+  drawChart(r);
+}
+
+let chartRo = null;
+function drawChart(r) {
+  const s = document.getElementById('chart');
+  const draw = () => {
+    const W = s.clientWidth, H = s.clientHeight;
+    if (!W || !H) return;
+    const n = Math.min(r.rows.length, r.months + 2);
+    const pts = [{ k: 0, b: r.start }].concat(r.rows.slice(0, n).map((x, i) => ({ k: i + 1, b: x.balance, ben: x.benefit })));
+    const maxB = Math.max(...pts.map(p => p.b), 1);
+    const minB = Math.min(0, ...pts.map(p => p.b));
+    const L = 8, R = 8, T = 18, B = 26;
+    const x = k => L + (k / (pts.length - 1)) * (W - L - R);
+    const y = b => T + (1 - (b - minB) / (maxB - minB)) * (H - T - B);
+    let bands = '';
+    pts.forEach(p => { if (p.ben) bands += `<rect x="${x(p.k - 1)}" y="${T}" width="${x(p.k) - x(p.k - 1)}" height="${H - T - B}" fill="var(--benefit)"/>`; });
+    const path = pts.map((p, i) => (i ? 'L' : 'M') + x(p.k).toFixed(1) + ' ' + y(p.b).toFixed(1)).join(' ');
+    const ticks = [];
+    const every = W < 520 ? Math.ceil(pts.length / 4) : Math.ceil(pts.length / 8);
+    pts.forEach(p => { if (p.k > 0 && p.k % every === 0) ticks.push(`<text x="${x(p.k)}" y="${H - 6}" font-size="12" text-anchor="middle" fill="var(--sub)">${p.k}ヶ月</text>`); });
+    ticks.push(`<text x="${L}" y="${H - 6}" font-size="12" fill="var(--sub)">退職</text>`);
+    s.innerHTML = `${bands}
+      <line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--sub)" stroke-dasharray="4 4"/>
+      <path d="${path}" fill="none" stroke="var(--hot)" stroke-width="3" stroke-linejoin="round"/>
+      <text x="${L + 2}" y="${T - 4}" font-size="12" fill="var(--sub)">${man(maxB)}</text>
+      ${ticks.join('')}`;
+  };
+  if (chartRo) chartRo.disconnect();
+  chartRo = new ResizeObserver(draw);
+  chartRo.observe(s);
+  draw();
+}
+
+renderStep();
+}
+</script>
+</body>
+</html>
